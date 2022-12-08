@@ -17,7 +17,7 @@ fn parse_input(input: &str) -> DirRef {
     let mut iter = input.lines().peekable();
     while let Some(line) = iter.next() {
         if line.starts_with("$ cd") {
-            let dest = line.split(" ").last().unwrap();
+            let dest = line.split(' ').last().unwrap();
             if dest == "/" {
                 cursor = root.clone();
             } else if dest == ".." {
@@ -32,8 +32,8 @@ fn parse_input(input: &str) -> DirRef {
 
         assert!(line.starts_with("$ ls"));
 
-        while iter.peek().is_some() && !iter.peek().unwrap().starts_with("$") {
-            let (dir_or_size, name) = iter.next().unwrap().split(" ").next_tuple().unwrap();
+        while iter.peek().is_some() && !iter.peek().unwrap().starts_with('$') {
+            let (dir_or_size, name) = iter.next().unwrap().split(' ').next_tuple().unwrap();
 
             if dir_or_size == "dir" {
                 let new_dir = Rc::new(RefCell::new(Dir {
@@ -83,7 +83,7 @@ fn part_one(input: &str) -> usize {
     let sizes = get_sizes(&root);
 
     // find sum of directories with size of at most 100000
-    sizes.values().filter(|v| **v <= 100000usize).sum()
+    sizes.into_values().filter(|v| *v <= 100000).sum()
 }
 
 fn part_two(input: &str) -> usize {
@@ -96,7 +96,12 @@ fn part_two(input: &str) -> usize {
     assert!(remaining < 30000000);
     let target_to_delete = 30000000 - remaining;
 
-    sizes.into_values().filter(|v| *v > target_to_delete).sorted().next().unwrap()
+    sizes
+        .into_values()
+        .filter(|v| *v > target_to_delete)
+        .sorted()
+        .next()
+        .unwrap()
 }
 
 fn main() {
