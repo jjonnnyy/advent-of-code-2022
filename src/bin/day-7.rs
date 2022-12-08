@@ -12,20 +12,24 @@ struct Dir {
 
 fn parse_input(input: &str) -> DirRef {
     let root = Rc::new(RefCell::new(Dir::default()));
-    let mut cursor = root.clone();
+    let mut cursor = Rc::clone(&root);
 
     let mut iter = input.lines().peekable();
     while let Some(line) = iter.next() {
         if line.starts_with("$ cd") {
             let dest = line.split(' ').last().unwrap();
             if dest == "/" {
-                cursor = root.clone();
+                cursor = Rc::clone(&root);
             } else if dest == ".." {
-                let parent = cursor.borrow().parent.as_ref().unwrap().clone();
-                cursor = parent;
+                let dir = cursor.borrow();
+                let new_cursor = Rc::clone(dir.parent.as_ref().unwrap());
+                drop(dir);
+                cursor = new_cursor;
             } else {
-                let dest_dir = cursor.borrow().sub_directories.get(dest).unwrap().clone();
-                cursor = dest_dir;
+                let dir = cursor.borrow();
+                let new_cursor = Rc::clone(dir.sub_directories.get(dest).unwrap());
+                drop(dir);
+                cursor = new_cursor;
             }
             continue;
         }
@@ -37,7 +41,7 @@ fn parse_input(input: &str) -> DirRef {
 
             if dir_or_size == "dir" {
                 let new_dir = Rc::new(RefCell::new(Dir {
-                    parent: Some(cursor.clone()),
+                    parent: Some(Rc::clone(&cursor)),
                     size_of_files: 0,
                     sub_directories: HashMap::new(),
                 }));
