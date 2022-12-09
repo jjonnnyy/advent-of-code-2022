@@ -1,75 +1,86 @@
 use std::{collections::HashSet, fs};
 
+struct TreeData {
+    trees: Vec<u32>,
+    width: usize,
+    height: usize,
+}
+
+impl TreeData {
+    fn from_input(input: &str) -> Self {
+        let lines = input.lines().collect::<Vec<&str>>();
+
+        let width = lines[0].len();
+        let height = lines.len();
+
+        let trees: Vec<u32> = lines
+            .into_iter()
+            .flat_map(|l| l.chars())
+            .map(|c| c.to_digit(10).unwrap())
+            .collect();
+
+        Self {
+            trees,
+            width,
+            height,
+        }
+    }
+}
+
 fn part_one(input: &str) -> u32 {
-    let lines = input.lines().collect::<Vec<&str>>();
-
-    let width = lines[0].len();
-    let height = lines.len();
-
-    let trees: Vec<u32> = lines
-        .into_iter()
-        .flat_map(|l| l.chars())
-        .map(|c| c.to_digit(10).unwrap() + 1) // Plus one to count 0 height trees
-        .collect();
-
+    let data = TreeData::from_input(input);
+    let calc_index = |x: usize, y: usize| -> usize { x + (y * data.width) };
     let mut visible_trees = HashSet::new();
-    let calc_index = |x: usize, y: usize| -> usize { x + (y * width) };
 
     // From left
-    for y in 0..height {
-        let mut max = 0;
-        for x in 0..width {
+    for y in 0..data.height {
+        let mut max = -1;
+        for x in 0..data.width {
             let index = calc_index(x, y);
-            if trees[index] > max {
+            if data.trees[index] as i32 > max {
                 visible_trees.insert(index);
-                max = trees[index];
+                max = data.trees[index] as i32;
             }
         }
     }
 
     // From right
-    for y in 0..height {
-        let mut max = 0;
-        for x in (0..width).rev() {
+    for y in 0..data.height {
+        let mut max = -1;
+        for x in (0..data.width).rev() {
             let index = calc_index(x, y);
-            if trees[index] > max {
+            if data.trees[index] as i32 > max {
                 visible_trees.insert(index);
-                max = trees[index];
+                max = data.trees[index] as i32;
             }
         }
     }
 
     // From top
-    for x in 0..width {
-        let mut max = 0;
-        for y in 0..height {
+    for x in 0..data.width {
+        let mut max = -1;
+        for y in 0..data.height {
             let index = calc_index(x, y);
-            if trees[index] > max {
+            if data.trees[index] as i32 > max {
                 visible_trees.insert(index);
-                max = trees[index];
+                max = data.trees[index] as i32;
             }
         }
     }
 
     // From below
-    for x in 0..width {
-        let mut max = 0;
-        for y in (0..height).rev() {
+    for x in 0..data.width {
+        let mut max = -1;
+        for y in (0..data.height).rev() {
             let index = calc_index(x, y);
-            if trees[index] > max {
+            if data.trees[index] as i32 > max {
                 visible_trees.insert(index);
-                max = trees[index];
+                max = data.trees[index] as i32;
             }
         }
     }
 
     visible_trees.len() as u32
-}
-
-struct TreeData {
-    trees: Vec<u32>,
-    width: usize,
-    height: usize,
 }
 
 fn score_tree(data: &TreeData, x: usize, y: usize) -> u32 {
@@ -126,23 +137,7 @@ fn score_tree(data: &TreeData, x: usize, y: usize) -> u32 {
 }
 
 fn part_two(input: &str) -> u32 {
-    let lines = input.lines().collect::<Vec<&str>>();
-
-    let width = lines[0].len();
-    let height = lines.len();
-
-    let trees: Vec<u32> = lines
-        .into_iter()
-        .flat_map(|l| l.chars())
-        .map(|c| c.to_digit(10).unwrap())
-        .collect();
-
-    let data = TreeData {
-        trees,
-        width,
-        height,
-    };
-
+    let data = TreeData::from_input(input);
     let mut max_score = 0;
     for x in 0..data.width {
         for y in 0..data.height {
