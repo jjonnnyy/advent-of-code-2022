@@ -10,12 +10,9 @@ trait Priority {
 
 impl Priority for char {
     fn priority(self) -> Option<u32> {
-        match self as u32 {
-            // lowercase
-            x if (97..=122).contains(&x) => Some(x - 96),
-            // uppercase
-            x if (65..=90).contains(&x) => Some(x - 38),
-            // everything else
+        match self {
+            x if ('a'..='z').contains(&x) => Some(x as u32 - 'a' as u32 + 1),
+            x if ('A'..='Z').contains(&x) => Some(x as u32 - 'A' as u32 + 27),
             _ => None,
         }
     }
