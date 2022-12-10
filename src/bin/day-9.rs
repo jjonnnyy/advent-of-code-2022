@@ -26,18 +26,65 @@ impl FromStr for Direction {
     }
 }
 
+#[derive(Clone, Hash, PartialEq, Eq)]
 struct Position {
     x: i32,
     y: i32,
 }
 
 impl Position {
-    fn move_in_direction(&mut self, direction: &Direction) {
+    /// Imprecise distance calculation
+    fn distance(&self, other: &Position) -> u32 {
+        let mut dx = other.x - self.x;
+        let mut dy = other.y - self.y;
+        if dx < 0 {
+            dx *= -1;
+        }
+        if dy < 0 {
+            dy *= -1;
+        }
+
+        if dx > dy {
+            dx as u32
+        } else {
+            dy as u32
+        }
+    }
+
+    fn move_by_one(&mut self, direction: &Direction) {
         match direction {
             Direction::Up => self.y += 1,
             Direction::Down => self.y -= 1,
             Direction::Left => self.x -= 1,
             Direction::Right => self.x += 1,
+        }
+    }
+
+    fn follow(&mut self, other: &Position) {
+        let distance = self.distance(other);
+
+        if distance < 2 {
+            return;
+        }
+
+        if distance > 2 {
+            panic!("Expected point being followed to only move by one");
+        }
+
+        if self.x != other.x {
+            if other.x > self.x {
+                self.x += 1;
+            } else {
+                self.x -= 1;
+            }
+        }
+
+        if self.y != other.y {
+            if other.y > self.y {
+                self.y += 1;
+            } else {
+                self.y -= 1;
+            }
         }
     }
 }
@@ -58,8 +105,9 @@ impl Rope {
     }
 
     fn move_head(&mut self, direction: &Direction) {
-        self.head.move_in_direction(direction);
-        todo!()
+        self.head.move_by_one(direction);
+        self.tail.follow(&self.head);
+        self.tail_visited.insert(self.tail.clone());
     }
 
     fn tail_visited_count(&self) -> usize {
