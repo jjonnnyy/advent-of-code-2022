@@ -1,24 +1,27 @@
 use std::{collections::HashSet, fs, str::FromStr};
 
-enum RopeMove {
+use itertools::Itertools;
+
+enum Direction {
     Up,
     Down,
     Left,
     Right,
 }
 
-struct ParseRopeMoveError;
+#[derive(Debug)]
+struct ParseDirectionError;
 
-impl FromStr for RopeMove {
-    type Err = ParseRopeMoveError;
+impl FromStr for Direction {
+    type Err = ParseDirectionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "U" => Ok(RopeMove::Up),
-            "D" => Ok(RopeMove::Down),
-            "L" => Ok(RopeMove::Left),
-            "R" => Ok(RopeMove::Right),
-            _ => Err(ParseRopeMoveError),
+            "U" => Ok(Direction::Up),
+            "D" => Ok(Direction::Down),
+            "L" => Ok(Direction::Left),
+            "R" => Ok(Direction::Right),
+            _ => Err(ParseDirectionError),
         }
     }
 }
@@ -26,6 +29,17 @@ impl FromStr for RopeMove {
 struct Position {
     x: i32,
     y: i32,
+}
+
+impl Position {
+    fn move_in_direction(&mut self, direction: &Direction) {
+        match direction {
+            Direction::Up => self.y += 1,
+            Direction::Down => self.y -= 1,
+            Direction::Left => self.x -= 1,
+            Direction::Right => self.x += 1,
+        }
+    }
 }
 
 struct Rope {
@@ -43,7 +57,8 @@ impl Rope {
         }
     }
 
-    fn move_head(&mut self, direction: RopeMove) {
+    fn move_head(&mut self, direction: &Direction) {
+        self.head.move_in_direction(direction);
         todo!()
     }
 
@@ -53,7 +68,19 @@ impl Rope {
 }
 
 fn part_one(input: &str) -> usize {
-    todo!()
+    let mut rope = Rope::new();
+
+    for line in input.lines() {
+        let (direction, count) = line.split(' ').next_tuple().unwrap();
+        let direction = direction.parse::<Direction>().unwrap();
+        let count = count.parse::<u8>().unwrap();
+
+        for _ in 0..count {
+            rope.move_head(&direction);
+        }
+    }
+
+    rope.tail_visited_count()
 }
 
 fn main() {
