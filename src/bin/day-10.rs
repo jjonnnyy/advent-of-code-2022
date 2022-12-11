@@ -78,21 +78,18 @@ impl Processor {
         &mut self,
         sample_points: Vec<u32>,
         mut instructions: impl Iterator<Item = Instruction>,
+        crt: &mut Crt,
     ) {
         let mut cycle_number = 0;
-        let mut samples_remaining = sample_points.len();
 
         loop {
             if sample_points.contains(&cycle_number) {
                 self.signal_strength += cycle_number as i32 * self.x;
-
-                samples_remaining -= 1;
-                if samples_remaining == 0 {
-                    return;
-                }
             }
 
             cycle_number += 1;
+
+            crt.update(self.x);
 
             if self.busy_remaining > 0 {
                 self.busy_remaining -= 1;
@@ -110,17 +107,66 @@ impl Processor {
     }
 }
 
+struct Crt {
+    cursor: u32,
+    width: u32,
+    height: u32,
+    pixels: Vec<char>,
+}
+
+impl Crt {
+    fn new(width: u32, height: u32) -> Self {
+        Self {
+            cursor: 0,
+            width,
+            height,
+            pixels: vec!['.'; (width * height) as usize],
+        }
+    }
+
+    fn update(&mut self, sprite_position: i32) {
+        let x = (self.cursor % self.width) as i32;
+
+        let next_pixel = if sprite_position <= x && x <= sprite_position + 2 {
+            '#'
+        } else {
+            ' '
+        };
+
+        self.pixels[self.cursor as usize] = next_pixel;
+
+        // Update cursor position
+        self.cursor = (self.cursor + 1) % (self.width * self.height);
+    }
+}
+
+impl fmt::Display for Crt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, c) in self.pixels.iter().enumerate() {
+            if i % self.width as usize == 0 {
+                writeln!(f)?;
+            }
+            write!(f, "{}", c)?;
+        }
+        Ok(())
+    }
+}
+
 fn part_one(input: &str) -> i32 {
+    let mut crt = Crt::new(40, 6);
     let mut processor = Processor::new();
     let instructions = input.lines().map(|l| l.parse::<Instruction>().unwrap());
     let sample_points = vec![20, 60, 100, 140, 180, 220];
-
-    processor.run(sample_points, instructions);
+    processor.run(sample_points, instructions, &mut crt);
     processor.signal_strength()
 }
 
-fn part_two(_input: &str) -> i32 {
-    0
+fn part_two(input: &str) -> String {
+    let mut crt = Crt::new(40, 6);
+    let mut processor = Processor::new();
+    let instructions = input.lines().map(|l| l.parse::<Instruction>().unwrap());
+    processor.run(Vec::new(), instructions, &mut crt);
+    crt.to_string()
 }
 
 fn main() {
@@ -137,12 +183,5 @@ mod tests {
     fn part_one_example() {
         let input = fs::read_to_string("input/day-10-example.txt").unwrap();
         assert_eq!(part_one(&input), 13140);
-    }
-
-    #[test]
-    #[ignore]
-    fn part_two_example() {
-        let input = fs::read_to_string("input/day-10-example.txt").unwrap();
-        assert_eq!(part_two(&input), 36);
     }
 }
