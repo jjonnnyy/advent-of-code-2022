@@ -26,7 +26,7 @@ impl FromStr for Direction {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq, Default, Debug)]
 struct Position {
     x: i32,
     y: i32,
@@ -90,24 +90,33 @@ impl Position {
 }
 
 struct Rope {
-    head: Position,
-    tail: Position,
+    knots: Vec<Position>,
     tail_visited: HashSet<Position>,
 }
 
 impl Rope {
-    fn new() -> Rope {
+    fn new(length: usize) -> Rope {
+        let mut knots = Vec::new();
+        for _ in 0..length {
+            knots.push(Position::default());
+        }
+
         Rope {
-            head: Position { x: 0, y: 0 },
-            tail: Position { x: 0, y: 0 },
+            knots,
             tail_visited: HashSet::new(),
         }
     }
 
     fn move_head(&mut self, direction: &Direction) {
-        self.head.move_by_one(direction);
-        self.tail.follow(&self.head);
-        self.tail_visited.insert(self.tail.clone());
+        self.knots[0].move_by_one(direction);
+
+        for i in 1..self.knots.len() {
+            let prev_knot = self.knots[i - 1].clone();
+            self.knots[i].follow(&prev_knot);
+        }
+
+        let tail_position = self.knots[self.knots.len() - 1].clone();
+        self.tail_visited.insert(tail_position);
     }
 
     fn tail_visited_count(&self) -> usize {
@@ -115,9 +124,7 @@ impl Rope {
     }
 }
 
-fn part_one(input: &str) -> usize {
-    let mut rope = Rope::new();
-
+fn perform_moves(input: &str, rope: &mut Rope) {
     for line in input.lines() {
         let (direction, count) = line.split(' ').next_tuple().unwrap();
         let direction = direction.parse::<Direction>().unwrap();
@@ -127,13 +134,24 @@ fn part_one(input: &str) -> usize {
             rope.move_head(&direction);
         }
     }
+}
 
+fn part_one(input: &str) -> usize {
+    let mut rope = Rope::new(2);
+    perform_moves(input, &mut rope);
+    rope.tail_visited_count()
+}
+
+fn part_two(input: &str) -> usize {
+    let mut rope = Rope::new(10);
+    perform_moves(input, &mut rope);
     rope.tail_visited_count()
 }
 
 fn main() {
     let input = fs::read_to_string("input/day-9.txt").unwrap();
     println!("Part one answer is: {}", part_one(&input));
+    println!("Part two answer is: {}", part_two(&input));
 }
 
 #[cfg(test)]
@@ -144,5 +162,11 @@ mod tests {
     fn part_one_example() {
         let input = fs::read_to_string("input/day-9-example.txt").unwrap();
         assert_eq!(part_one(&input), 13);
+    }
+
+    #[test]
+    fn part_two_example() {
+        let input = fs::read_to_string("input/day-9-example1.txt").unwrap();
+        assert_eq!(part_two(&input), 36);
     }
 }
