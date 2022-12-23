@@ -3,7 +3,7 @@ use std::fs;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{char, digit0, digit1, multispace0, multispace1, newline, one_of},
+    character::complete::{char, digit0, digit1, multispace0, multispace1, newline, one_of, tab},
     combinator::{map_opt, map_res},
     multi::separated_list0,
     sequence::{delimited, pair, preceded, tuple},
@@ -68,7 +68,31 @@ fn operation(input: &str) -> IResult<&str, Operation> {
 }
 
 fn test(input: &str) -> IResult<&str, (u32, u32, u32)> {
-    todo!()
+    let (input, divisor) = map_res(
+        delimited(
+            preceded(multispace1, tag("Test: divisible by ")),
+            digit1,
+            newline,
+        ),
+        |s: &str| s.parse::<u32>(),
+    )(input)?;
+    let (input, true_monkey) = map_res(
+        delimited(
+            preceded(multispace1, tag("If true: throw to monkey ")),
+            digit1,
+            newline,
+        ),
+        |s: &str| s.parse::<u32>(),
+    )(input)?;
+    let (input, false_monkey) = map_res(
+        delimited(
+            preceded(multispace1, tag("If false: throw to monkey ")),
+            digit1,
+            newline,
+        ),
+        |s: &str| s.parse::<u32>(),
+    )(input)?;
+    Ok((input, (divisor, true_monkey, false_monkey)))
 }
 
 fn monkey(input: &str) -> IResult<&str, Monkey> {
@@ -89,14 +113,14 @@ fn monkey(input: &str) -> IResult<&str, Monkey> {
     ))
 }
 
-fn parse_monkeys(input: &str) -> Option<Vec<Monkey>> {
-    separated_list0(newline, monkey)(input).map(|(_, v)| v).ok()
+fn monkey_list(input: &str) -> IResult<&str, Vec<Monkey>> {
+    separated_list0(newline, monkey)(input)
 }
 
 fn part_one(input: &str) -> u32 {
-    let monkeys = parse_monkeys(input).unwrap();
+    let (_, monkeys) = monkey_list(input).unwrap();
     dbg!(monkeys);
-    todo!()
+    0
 }
 
 fn part_two(input: &str) -> u32 {
