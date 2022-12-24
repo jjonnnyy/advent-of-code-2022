@@ -1,4 +1,8 @@
-use std::{cell::{RefCell, Cell}, collections::VecDeque, fs};
+use std::{
+    cell::{Cell, RefCell},
+    collections::VecDeque,
+    fs,
+};
 
 use itertools::Itertools;
 use nom::{
@@ -13,17 +17,17 @@ use nom::{
 
 #[derive(Debug)]
 enum Operation {
-    Add(u32),
-    Multiply(u32),
+    Add(u128),
+    Multiply(u128),
     Square,
 }
 
 #[derive(Debug)]
 struct Monkey {
-    inspections: Cell<u32>,
-    items: RefCell<VecDeque<u32>>,
+    inspections: Cell<u64>,
+    items: RefCell<VecDeque<u128>>,
     operation: Operation,
-    divisor: u32,
+    divisor: u64,
     throw_true: usize,
     throw_false: usize,
 }
@@ -35,9 +39,9 @@ fn monkey_id(input: &str) -> IResult<&str, u32> {
     Ok((input, id))
 }
 
-fn starting_items(input: &str) -> IResult<&str, VecDeque<u32>> {
+fn starting_items(input: &str) -> IResult<&str, VecDeque<u128>> {
     let (input, _) = preceded(multispace1, tag("Starting items:"))(input)?;
-    let item_parser = map_res(preceded(multispace0, digit1), |s: &str| s.parse::<u32>());
+    let item_parser = map_res(preceded(multispace0, digit1), |s: &str| s.parse::<u128>());
     let (input, items) = separated_list0(char(','), item_parser)(input)?;
     let (input, _) = newline(input)?;
     Ok((input, items.into()))
@@ -69,14 +73,14 @@ fn operation(input: &str) -> IResult<&str, Operation> {
     Ok((input, operation))
 }
 
-fn test(input: &str) -> IResult<&str, (u32, usize, usize)> {
+fn test(input: &str) -> IResult<&str, (u64, usize, usize)> {
     let (input, divisor) = map_res(
         delimited(
             preceded(multispace1, tag("Test: divisible by ")),
             digit1,
             newline,
         ),
-        |s: &str| s.parse::<u32>(),
+        |s: &str| s.parse::<u64>(),
     )(input)?;
     let (input, true_monkey) = map_res(
         delimited(
@@ -120,13 +124,13 @@ fn monkey_list(input: &str) -> IResult<&str, Vec<Monkey>> {
     separated_list0(newline, monkey)(input)
 }
 
-fn part_one(input: &str) -> u32 {
+fn part_one(input: &str) -> u64 {
     let (_, monkeys) = monkey_list(input).unwrap();
 
     for _ in 0..20 {
         for monkey in monkeys.iter() {
             let mut items = monkey.items.take();
-            let inspection_count = monkey.inspections.take() + items.len() as u32;
+            let inspection_count = monkey.inspections.take() + items.len() as u64;
             monkey.inspections.set(inspection_count);
 
             while let Some(item) = items.pop_front() {
@@ -136,7 +140,7 @@ fn part_one(input: &str) -> u32 {
                     Operation::Square => item * item,
                 } / 3;
 
-                if worry_level % monkey.divisor == 0 {
+                if worry_level % monkey.divisor as u128 == 0 {
                     monkeys
                         .get(monkey.throw_true)
                         .unwrap()
@@ -155,12 +159,58 @@ fn part_one(input: &str) -> u32 {
         }
     }
 
-    let inspection_counts = monkeys.into_iter().map(|m| m.inspections.take()).sorted().rev();
+    let inspection_counts = monkeys
+        .into_iter()
+        .map(|m| m.inspections.take())
+        .sorted()
+        .rev();
     inspection_counts.take(2).product()
 }
 
-fn part_two(_input: &str) -> u32 {
-    0
+fn part_two(input: &str) -> u64 {
+    let (_, monkeys) = monkey_list(input).unwrap();
+
+    let mod_value: u128 = monkeys.iter().map(|m| m.divisor as u128).product();
+
+    for _ in 0..10000 {
+        for monkey in monkeys.iter() {
+            let mut items = monkey.items.take();
+            let inspection_count = monkey.inspections.take() + items.len() as u64;
+            monkey.inspections.set(inspection_count);
+
+            while let Some(item) = items.pop_front() {
+                let worry_level = match monkey.operation {
+                    Operation::Add(x) => item + x,
+                    Operation::Multiply(x) => item * x,
+                    Operation::Square => item * item,
+                } % mod_value;
+
+                if worry_level % monkey.divisor as u128 == 0 {
+                    monkeys
+                        .get(monkey.throw_true)
+                        .unwrap()
+                        .items
+                        .borrow_mut()
+                        .push_back(worry_level);
+                } else {
+                    monkeys
+                        .get(monkey.throw_false)
+                        .unwrap()
+                        .items
+                        .borrow_mut()
+                        .push_back(worry_level);
+                }
+            }
+        }
+    }
+
+    monkeys
+        .into_iter()
+        .map(|m| m.inspections.take())
+        .sorted()
+        .rev()
+        .take(2)
+        .product()
 }
 
 fn main() {
@@ -177,5 +227,11 @@ mod tests {
     fn part_one_example() {
         let input = fs::read_to_string("input/day-11-example.txt").unwrap();
         assert_eq!(part_one(&input), 10605);
+    }
+
+    #[test]
+    fn part_two_example() {
+        let input = fs::read_to_string("input/day-11-example.txt").unwrap();
+        assert_eq!(part_two(&input), 2713310158);
     }
 }
