@@ -56,6 +56,18 @@ impl HeightMap {
         (row, col)
     }
 
+    fn find_a(&self) -> Vec<(usize, usize)> {
+        let mut squares = Vec::new();
+        for (row_index, row_data) in self.data.iter().enumerate() {
+            for (col_index, square) in row_data.iter().enumerate() {
+                if square == &Square::Level(0) {
+                    squares.push((row_index, col_index));
+                }
+            }
+        }
+        squares
+    }
+
     fn get_height(&self, row: usize, col: usize) -> Option<u32> {
         let target = self.data.get(row)?.get(col)?;
         match target {
@@ -110,8 +122,51 @@ fn part_one(input: &str) -> u32 {
         .to_owned()
 }
 
-fn part_two(_input: &str) -> u32 {
-    0
+fn part_two(input: &str) -> u32 {
+    let height_map = HeightMap::parse_input(input);
+
+    let mut squares_reached = HashMap::new();
+
+    let mut to_process: Vec<_> = height_map
+        .find_a()
+        .into_iter()
+        .map(|(row, col)| (row, col, 0))
+        .collect();
+
+    while let Some((row, col, length)) = to_process.pop() {
+        squares_reached.insert((row, col), length);
+        let height = height_map.get_height(row, col).unwrap();
+
+        let mut candidate_move = |(row, col)| {
+            if let Some(target_height) = height_map.get_height(row, col) {
+                if target_height <= height + 1 {
+                    let prev_length = squares_reached.get(&(row, col)).unwrap_or(&u32::MAX);
+                    if length + 1 < *prev_length {
+                        to_process.push((row, col, length + 1));
+                    }
+                }
+            }
+        };
+
+        // Up
+        if row > 0 {
+            candidate_move((row - 1, col));
+        }
+        // Down
+        candidate_move((row + 1, col));
+        // Left
+        if col > 0 {
+            candidate_move((row, col - 1));
+        }
+        // Right
+        candidate_move((row, col + 1));
+    }
+
+    let (end_row, end_col) = height_map.find_end();
+    squares_reached
+        .get(&(end_row, end_col))
+        .expect("Did not reach end square")
+        .to_owned()
 }
 
 fn main() {
@@ -131,9 +186,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn part_two_example() {
         let input = fs::read_to_string("input/day-12-example.txt").unwrap();
-        assert_eq!(part_two(&input), 0);
+        assert_eq!(part_two(&input), 29);
     }
 }
