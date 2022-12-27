@@ -1,4 +1,4 @@
-use std::fs;
+use std::{cmp::Ordering, fs};
 
 use nom::{
     branch::alt,
@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum Item {
     Single(u32),
     List(Vec<Item>),
@@ -50,9 +50,9 @@ enum Comparison {
 fn compare_items(left: &Item, right: &Item) -> Comparison {
     match (left, right) {
         (Item::Single(l), Item::Single(r)) => match l.cmp(r) {
-            std::cmp::Ordering::Less => Comparison::Ordered,
-            std::cmp::Ordering::Equal => Comparison::Same,
-            std::cmp::Ordering::Greater => Comparison::Unordered,
+            Ordering::Less => Comparison::Ordered,
+            Ordering::Equal => Comparison::Same,
+            Ordering::Greater => Comparison::Unordered,
         },
         (Item::Single(_), Item::List(_)) => compare_items(&Item::List(vec![left.clone()]), right),
         (Item::List(_), Item::Single(_)) => compare_items(left, &Item::List(vec![right.clone()])),
@@ -65,10 +65,30 @@ fn compare_items(left: &Item, right: &Item) -> Comparison {
                 }
             }
             match l.len().cmp(&r.len()) {
-                std::cmp::Ordering::Less => Comparison::Ordered,
-                std::cmp::Ordering::Equal => Comparison::Same,
-                std::cmp::Ordering::Greater => Comparison::Unordered,
+                Ordering::Less => Comparison::Ordered,
+                Ordering::Equal => Comparison::Same,
+                Ordering::Greater => Comparison::Unordered,
             }
+        }
+    }
+}
+
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match compare_items(self, other) {
+            Comparison::Ordered => Ordering::Less,
+            Comparison::Unordered => Ordering::Greater,
+            Comparison::Same => Ordering::Equal,
+        }
+    }
+}
+
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match compare_items(self, other) {
+            Comparison::Ordered => Some(Ordering::Less),
+            Comparison::Unordered => Some(Ordering::Greater),
+            Comparison::Same => Some(Ordering::Equal),
         }
     }
 }
@@ -87,8 +107,26 @@ fn part_one(input: &str) -> usize {
     ordered_indexes.into_iter().sum()
 }
 
-fn part_two(_input: &str) -> usize {
-    0
+fn part_two(input: &str) -> usize {
+    let (_, first_distress) = list("[[2]]").unwrap();
+    let (_, second_distress) = list("[[6]]").unwrap();
+
+    let mut packets: Vec<Item> = input
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|l| {
+            let (_, list) = list(l).unwrap();
+            list
+        })
+        .collect();
+
+    packets.push(first_distress.clone());
+    packets.push(second_distress.clone());
+    packets.sort();
+
+    let first = packets.iter().position(|i| *i == first_distress).unwrap() + 1;
+    let second = packets.iter().position(|i| *i == second_distress).unwrap() + 1;
+    first * second
 }
 
 fn main() {
@@ -108,9 +146,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn part_two_example() {
         let input = fs::read_to_string("input/day-13-example.txt").unwrap();
-        assert_eq!(part_two(&input), 29);
+        assert_eq!(part_two(&input), 140);
     }
 }
