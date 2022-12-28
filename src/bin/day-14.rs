@@ -24,7 +24,7 @@ fn path(input: &str) -> IResult<&str, Vec<Coord>> {
     separated_list1(tag(" -> "), coord)(input)
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Material {
     Rock,
     Air,
@@ -85,9 +85,20 @@ impl RockFace {
         }
     }
 
-    fn drop_sand(&mut self) -> Option<Coord> {
+    fn drop_sand(&mut self, bottomless: bool) -> Option<Coord> {
         let mut x = 500;
-        for y in 0..=self.floor {
+
+        // Check if we've filled up to the top
+        if self.data.get(&Coord(500, 0)) == Some(&Material::Sand) {
+            return None;
+        }
+
+        for y in 0..=self.floor + 1 {
+            if !bottomless && y == self.floor + 1 {
+                self.data.insert(Coord(x, y), Material::Sand);
+                return Some(Coord(x, y));
+            }
+
             let below = self.data.get(&Coord(x, y + 1)).unwrap_or_default();
             if *below == Material::Air {
                 continue;
@@ -137,17 +148,26 @@ fn part_one(input: &str) -> usize {
     rock_face.print();
 
     let mut count = 0;
-    while rock_face.drop_sand().is_some() {
+    while rock_face.drop_sand(true).is_some() {
         count += 1;
     }
 
     rock_face.print();
-
     count
 }
 
-fn part_two(_input: &str) -> usize {
-    0
+fn part_two(input: &str) -> usize {
+    let (_, paths) = separated_list1(newline, path)(input).unwrap();
+    let mut rock_face = RockFace::new(&paths);
+    rock_face.print();
+
+    let mut count = 0;
+    while rock_face.drop_sand(false).is_some() {
+        count += 1;
+    }
+
+    rock_face.print();
+    count
 }
 
 fn main() {
@@ -168,8 +188,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn part_two_example() {
-        assert_eq!(part_two(EXAMPLE), 140);
+        assert_eq!(part_two(EXAMPLE), 93);
     }
 }
