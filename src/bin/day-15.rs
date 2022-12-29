@@ -36,19 +36,13 @@ fn part_one(input: &str, row: i64) -> usize {
     for sensor in sensors.iter() {
         let beacon_dx = (sensor.beacon.0 - sensor.location.0).abs();
         let beacon_dy = (sensor.beacon.1 - sensor.location.1).abs();
-        let distance_to_beacon = f32::sqrt((beacon_dx * beacon_dx + beacon_dy * beacon_dy) as f32);
+        let distance_to_beacon = beacon_dx + beacon_dy;
 
         let dy = (row - sensor.location.1).abs();
-        if dy as f32 <= distance_to_beacon {
-            for x in (sensor.location.0 - distance_to_beacon as i64)
-                ..=(sensor.location.0 + distance_to_beacon as i64)
-            {
-                let dx = (x - sensor.location.0).abs();
-                let distance_to_sensor = f32::sqrt((dx * dx + dy * dy) as f32);
-
-                if distance_to_sensor <= distance_to_beacon {
-                    known_no_beacon.insert((x, row));
-                }
+        if dy < distance_to_beacon {
+            let dx = distance_to_beacon - dy;
+            for x in (sensor.location.0 - dx)..=(sensor.location.0 + dx) {
+                known_no_beacon.insert((x, row));
             }
         }
     }
