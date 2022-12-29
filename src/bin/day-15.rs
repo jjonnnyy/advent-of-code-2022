@@ -54,19 +54,31 @@ fn part_one(input: &str, row: i64) -> usize {
 fn part_two(input: &str, max: i64) -> i64 {
     let (_, sensors) = separated_list1(newline, sensor)(input).unwrap();
 
-    for x in 0..=max {
-        if x % 1000 == 0 {
-            dbg!(x);
+    let mut perimeter_points = HashSet::new();
+    for sensor in sensors.iter() {
+        let (x, y) = sensor.location;
+        perimeter_points.insert((x + sensor.distance + 1, y));
+        perimeter_points.insert((x - sensor.distance - 1, y));
+        perimeter_points.insert((x, y + sensor.distance + 1));
+        perimeter_points.insert((x, y - sensor.distance - 1));
+        for py in y - sensor.distance..=y + sensor.distance {
+            let dx = sensor.distance - (py - y).abs() + 1;
+            perimeter_points.insert((x - dx, py));
+            perimeter_points.insert((x + dx, py));
         }
-        for y in 0..=max {
-            let within_range_of_sensor = sensors.iter().any(|sensor| {
-                let distance_to_sensor =
-                    (sensor.location.0 - x).abs() + (sensor.location.1 - y).abs();
-                distance_to_sensor <= sensor.distance
-            });
-            if !within_range_of_sensor {
-                return x * 4000000 + y;
-            }
+    }
+
+    for (x, y) in perimeter_points {
+        if x < 0 || x > max || y < 0 || y > max {
+            continue;
+        }
+
+        let within_range_of_sensor = sensors.iter().any(|sensor| {
+            let distance_to_sensor = (sensor.location.0 - x).abs() + (sensor.location.1 - y).abs();
+            distance_to_sensor <= sensor.distance
+        });
+        if !within_range_of_sensor {
+            return x * 4000000 + y;
         }
     }
     panic!("Distress beacon not found");
