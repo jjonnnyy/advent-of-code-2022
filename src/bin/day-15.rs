@@ -12,6 +12,7 @@ use nom::{
 struct Sensor {
     location: (i64, i64),
     beacon: (i64, i64),
+    distance: i64,
 }
 
 fn sensor(input: &str) -> IResult<&str, Sensor> {
@@ -24,6 +25,7 @@ fn sensor(input: &str) -> IResult<&str, Sensor> {
         Sensor {
             location: (x, y),
             beacon: (beacon_x, beacon_y),
+            distance: (x - beacon_x).abs() + (y - beacon_y).abs(),
         },
     ))
 }
@@ -33,13 +35,9 @@ fn part_one(input: &str, row: i64) -> usize {
     let mut known_no_beacon = HashSet::new();
 
     for sensor in sensors.iter() {
-        let beacon_dx = (sensor.beacon.0 - sensor.location.0).abs();
-        let beacon_dy = (sensor.beacon.1 - sensor.location.1).abs();
-        let distance_to_beacon = beacon_dx + beacon_dy;
-
         let dy = (row - sensor.location.1).abs();
-        if dy < distance_to_beacon {
-            let dx = distance_to_beacon - dy;
+        if dy < sensor.distance {
+            let dx = sensor.distance - dy;
             for x in (sensor.location.0 - dx)..=(sensor.location.0 + dx) {
                 known_no_beacon.insert((x, row));
             }
@@ -53,30 +51,20 @@ fn part_one(input: &str, row: i64) -> usize {
     known_no_beacon.iter().filter(|(_, y)| *y == row).count()
 }
 
-fn part_two(input: &str, max: usize) -> usize {
+fn part_two(input: &str, max: i64) -> i64 {
     let (_, sensors) = separated_list1(newline, sensor)(input).unwrap();
-    let mut known_no_beacon = vec![vec![false; max + 1]; max + 1];
-
-    for sensor in sensors.iter() {
-        dbg!(&sensor);
-        let beacon_dx = (sensor.beacon.0 - sensor.location.0).abs();
-        let beacon_dy = (sensor.beacon.1 - sensor.location.1).abs();
-        let distance_to_beacon = beacon_dx + beacon_dy;
-
-        for y in sensor.location.1 - distance_to_beacon..=sensor.location.1 + distance_to_beacon {
-            let sensor_dy = (y - sensor.location.1).abs();
-            let sensor_dx = distance_to_beacon - sensor_dy;
-            for x in sensor.location.0 - sensor_dx..=sensor.location.0 + sensor_dx {
-                if x >= 0 && x <= max as i64 && y >= 0 && y <= max as i64{
-                    known_no_beacon[x as usize][y as usize] = true;
-                }
-            }
-        }
-    }
 
     for x in 0..=max {
+        if x % 1000 == 0 {
+            dbg!(x);
+        }
         for y in 0..=max {
-            if !known_no_beacon[x][y] {
+            let within_range_of_sensor = sensors.iter().any(|sensor| {
+                let distance_to_sensor =
+                    (sensor.location.0 - x).abs() + (sensor.location.1 - y).abs();
+                distance_to_sensor <= sensor.distance
+            });
+            if !within_range_of_sensor {
                 return x * 4000000 + y;
             }
         }
