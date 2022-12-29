@@ -30,7 +30,6 @@ fn sensor(input: &str) -> IResult<&str, Sensor> {
 
 fn part_one(input: &str, row: i64) -> usize {
     let (_, sensors) = separated_list1(newline, sensor)(input).unwrap();
-
     let mut known_no_beacon = HashSet::new();
 
     for sensor in sensors.iter() {
@@ -54,14 +53,41 @@ fn part_one(input: &str, row: i64) -> usize {
     known_no_beacon.iter().filter(|(_, y)| *y == row).count()
 }
 
-fn part_two(_input: &str) -> usize {
-    0
+fn part_two(input: &str, max: usize) -> usize {
+    let (_, sensors) = separated_list1(newline, sensor)(input).unwrap();
+    let mut known_no_beacon = vec![vec![false; max + 1]; max + 1];
+
+    for sensor in sensors.iter() {
+        dbg!(&sensor);
+        let beacon_dx = (sensor.beacon.0 - sensor.location.0).abs();
+        let beacon_dy = (sensor.beacon.1 - sensor.location.1).abs();
+        let distance_to_beacon = beacon_dx + beacon_dy;
+
+        for y in sensor.location.1 - distance_to_beacon..=sensor.location.1 + distance_to_beacon {
+            let sensor_dy = (y - sensor.location.1).abs();
+            let sensor_dx = distance_to_beacon - sensor_dy;
+            for x in sensor.location.0 - sensor_dx..=sensor.location.0 + sensor_dx {
+                if x >= 0 && x <= max as i64 && y >= 0 && y <= max as i64{
+                    known_no_beacon[x as usize][y as usize] = true;
+                }
+            }
+        }
+    }
+
+    for x in 0..=max {
+        for y in 0..=max {
+            if !known_no_beacon[x][y] {
+                return x * 4000000 + y;
+            }
+        }
+    }
+    panic!("Distress beacon not found");
 }
 
 fn main() {
     let input = fs::read_to_string("input/day-15.txt").unwrap();
     println!("Part one answer is: {}", part_one(&input, 2000000));
-    println!("Part two answer is: {}", part_two(&input));
+    println!("Part two answer is: {}", part_two(&input, 4000000));
 }
 
 #[cfg(test)]
@@ -74,10 +100,9 @@ mod tests {
         assert_eq!(part_one(&input, 10), 26);
     }
 
-    #[ignore]
     #[test]
     fn part_two_example() {
         let input = fs::read_to_string("input/day-15-example.txt").unwrap();
-        assert_eq!(part_two(&input), 0);
+        assert_eq!(part_two(&input, 20), 56000011);
     }
 }
